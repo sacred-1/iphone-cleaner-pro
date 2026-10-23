@@ -1,0 +1,153 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090d0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="iCleaner Pro">
+<title>iPhone Cleaner Pro</title>
+<style>
+:root{color-scheme:dark;--bg:#090d0b;--panel:#151d19;--green:#53ff91;--muted:#a0b3a8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#f3fff6;font:16px -apple-system,BlinkMacSystemFont,sans-serif}
+main{max-width:650px;margin:auto;padding:22px 17px 50px}
+header{padding:12px 0 24px}
+.eyebrow{color:var(--green);font-size:12px;font-weight:800;letter-spacing:2px}
+h1{font-size:30px;margin:8px 0}
+p{line-height:1.5}
+.muted{color:var(--muted);font-size:14px}
+.panel{background:var(--panel);border:1px solid #294033;border-radius:19px;padding:17px;margin:14px 0}
+.gauge{width:148px;height:148px;border-radius:50%;border:8px solid #254132;display:grid;place-content:center;text-align:center;margin:14px auto}
+.gauge strong{font-size:25px;color:var(--green)}
+button,.pick{display:block;width:100%;border:0;border-radius:12px;padding:14px;background:var(--green);color:#07130b;font-weight:800;font-size:15px;text-align:center;margin-top:10px}
+button.secondary{background:#26372d;color:#e9fff0;border:1px solid #3c5846}
+input[type=file]{width:100%;margin:12px 0;color:var(--muted)}
+h2{font-size:18px;margin:0 0 8px}
+.stat{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #29352e}
+.stat:last-child{border:0}
+#results{margin-top:12px}
+.item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #29352e}
+.item img,.placeholder{width:64px;height:64px;object-fit:cover;border-radius:9px;background:#26372d}
+.item .info{flex:1;min-width:0}
+.item small{display:block;color:var(--muted);margin-top:5px;overflow-wrap:anywhere}
+.tag{color:var(--green);font-size:12px}
+.notice{border-left:3px solid var(--green);padding:8px 12px;background:#142219;color:#d8f5df;font-size:13px;line-height:1.5}
+a{color:var(--green)}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:30px}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="eyebrow">PRIVATE • AD-FREE • NO JAILBREAK</div>
+<h1>iPHONE CLEANER <span style="color:#53ff91">PRO</span></h1>
+<div class="muted">Your storage. Your choice. Your privacy.</div>
+</header>
+
+<section class="panel">
+<div class="eyebrow">CLEANUP SCANNER</div>
+<div class="gauge"><div><strong id="count">0</strong><div class="muted">files selected</div></div></div>
+<div class="stat"><span>Selected file size</span><strong id="total">0 MB</strong></div>
+<div class="stat"><span>Exact duplicate groups</span><strong id="duplicates">0</strong></div>
+<div class="stat"><span>Large videos (100 MB+)</span><strong id="videos">0</strong></div>
+<p class="muted">Only files you select are analyzed. Your full iPhone storage usage is not accessible to a web app.</p>
+</section>
+
+<section class="panel">
+<h2>01 / Scan photos and videos</h2>
+<p class="muted">Choose media from the iOS picker. For the most complete scan, select items from Files when available; photo-library access varies by iOS version and browser.</p>
+<input id="files" type="file" accept="image/*,video/*" multiple>
+<button id="scan">SCAN SELECTED FILES</button>
+<div id="results"></div>
+</section>
+
+<section class="panel">
+<h2>02 / Review exact duplicates</h2>
+<p class="muted">Files with identical content hashes are grouped together. Similar-looking images with different content are not guaranteed to be detected.</p>
+<div id="dupeList" class="muted">Run a scan to see results.</div>
+</section>
+
+<section class="panel">
+<h2>03 / Free up iPhone storage</h2>
+<div class="notice">Nothing is deleted by this app. Review files first, then use Apple's Photos or Files app to remove unwanted items.</div>
+<button class="secondary" id="photos">OPEN PHOTOS APP</button>
+<button class="secondary" id="settings">STORAGE CLEANUP GUIDE</button>
+</section>
+
+<section class="panel">
+<h2>04 / Safe cleanup checklist</h2>
+<label class="stat"><span>Review large videos before deleting</span><input type="checkbox"></label>
+<label class="stat"><span>Keep a backup of important media</span><input type="checkbox"></label>
+<label class="stat"><span>Check Recently Deleted after cleanup</span><input type="checkbox"></label>
+<p class="muted">If iCloud Photos is enabled, deleting a photo can remove it from your other synced devices too.</p>
+</section>
+
+<footer>iPHONE CLEANER PRO • NO ADS • NO TRACKING<br>Files are processed locally in this page.</footer>
+</main>
+
+<script>
+const picker=document.getElementById('files');
+const result=document.getElementById('results');
+const dupeList=document.getElementById('dupeList');
+const fmt=n=>n>=1073741824?(n/1073741824).toFixed(2)+' GB':(n/1048576).toFixed(1)+' MB';
+let selected=[];
+
+async function hashFile(file){
+ const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+ return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function makeItem(file,index){
+ const el=document.createElement('div');el.className='item';
+ if(file.type.startsWith('image/')){
+  const img=document.createElement('img');
+  img.alt='Selected photo preview';img.src=URL.createObjectURL(file);el.append(img);
+ }else{
+  const ph=document.createElement('div');ph.className='placeholder';
+  ph.textContent='▶';ph.style.display='grid';ph.style.placeItems='center';el.append(ph);
+ }
+ const info=document.createElement('div');info.className='info';
+ const name=document.createElement('div');name.textContent=file.name||('File '+(index+1));
+ const meta=document.createElement('small');meta.textContent=fmt(file.size)+' • '+(file.type||'Unknown type');
+ info.append(name,meta);el.append(info);return el;
+}
+document.getElementById('scan').addEventListener('click',async()=>{
+ selected=[...picker.files];
+ result.replaceChildren();dupeList.textContent='Scanning selected files…';
+ document.getElementById('count').textContent=selected.length;
+ document.getElementById('total').textContent=fmt(selected.reduce((n,f)=>n+f.size,0));
+ const bigVideos=selected.filter(f=>f.type.startsWith('video/')&&f.size>=100*1048576);
+ document.getElementById('videos').textContent=bigVideos.length;
+ selected.forEach((f,i)=>result.append(makeItem(f,i)));
+ const groups=new Map();
+ for(const f of selected){
+  try{
+   const key=f.size+':'+await hashFile(f);
+   if(!groups.has(key))groups.set(key,[]);
+   groups.get(key).push(f);
+  }catch(e){}
+ }
+ const dupes=[...groups.values()].filter(g=>g.length>1);
+ document.getElementById('duplicates').textContent=dupes.length;
+ dupeList.replaceChildren();
+ if(!dupes.length)dupeList.textContent='No exact duplicate groups found in the selected files.';
+ else dupes.forEach((group,i)=>{
+  const box=document.createElement('div');box.className='panel';
+  const title=document.createElement('strong');title.textContent='Duplicate group '+(i+1);
+  box.append(title);
+  group.forEach(f=>{
+   const line=document.createElement('p');line.className='muted';
+   line.textContent=f.name+' — '+fmt(f.size);box.append(line);
+  });
+  const note=document.createElement('div');note.className='tag';
+  note.textContent='Review these files in Photos or Files; none were deleted.';
+  box.append(note);dupeList.append(box);
+ });
+});
+document.getElementById('photos').onclick=()=>{location.href='photos-redirect://';setTimeout(()=>alert('Open the Photos app manually to review and delete selected items.'),300)};
+document.getElementById('settings').onclick=()=>alert('Open Settings → General → iPhone Storage. Review recommendations and individual apps. To clear Safari website data, open Settings → Apps → Safari → Clear History and Website Data (menu names vary by iOS version).');
+</script>
+</body>
+</html>
